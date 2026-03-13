@@ -8,19 +8,7 @@ Two AI agents argue opposite sides of any topic. A third judge AI scores both an
 
 ## How it works
 
-```
-User enters topic
-       ↓
-  [Search Agent]  ← fetches real web facts via DuckDuckGo
-       ↓
-  [FOR Agent]     ← argues in favor using search context
-       ↓
-  [AGAINST Agent] ← argues against using search context
-       ↓
-  [Judge Agent]   ← scores both sides and declares winner
-       ↓
-  Result shown in Streamlit UI
-```
+![Architecture Diagram](architecture.png)
 
 ---
 
@@ -74,56 +62,34 @@ streamlit run app.py
 
 ---
 
+## Why I built this
+
+Most AI demos I've seen are just chatbots — one prompt, one response. I wanted to build something architecturally different.
+
+**The idea:**
+- Instead of one AI answering a question, what if two AIs disagreed with each other?
+- And a third AI had to evaluate who argued better?
+
+**The pattern behind it:**
+- This is called the **agent-as-evaluator** pattern
+- It's used in production for automated code review, content moderation, and LLM output quality testing
+- Anthropic, OpenAI and other labs use variations of this in their own model evaluation pipelines
+
+**Why I built it instead of just reading about it:**
+- I wanted to actually implement `StateGraph` and understand how shared state flows between nodes
+- I wanted to see if an LLM could genuinely evaluate another LLM's argument — and it can, surprisingly well
+- Building it made the concept stick in a way no blog post could
+
+---
+
 ## What I learned building this
 
 - How to structure a multi-node agentic pipeline using LangGraph's `StateGraph`
-- The **agent-as-evaluator** pattern (Judge agent scoring other agents)
+- The **agent-as-evaluator** pattern — using one LLM to score and judge outputs of other LLMs
 - Why grounding LLM responses with real search results reduces hallucination
-- Managing shared state across independent agent nodes
+- Managing shared state (`DebateState`) across independent agent nodes
+- The difference between a single LLM with multiple prompts vs a true orchestrated multi-agent system
 
 ---
 
 *Built by Sumanth · [GitHub](https://github.com/sumanth-msn)*
-
-## How it works
-
-                        ┌─────────────────────┐
-                        │   User enters topic  │
-                        └────────┬────────────┘
-                                 │
-                                 ▼
-                    ┌────────────────────────┐
-                    │      Search Node        │
-                    │  DuckDuckGo web search  │
-                    │  → stores in state      │
-                    └────────────┬───────────┘
-                                 │ search_results
-                    ┌────────────▼───────────┐
-                    │       FOR Agent         │
-                    │  "Argue IN FAVOR of     │
-                    │   the topic"            │
-                    │  uses search_results    │
-                    └────────────┬───────────┘
-                                 │ for_argument
-                    ┌────────────▼───────────┐
-                    │     AGAINST Agent       │
-                    │  "Argue AGAINST         │
-                    │   the topic"            │
-                    │  uses search_results    │
-                    └────────────┬───────────┘
-                                 │ against_argument
-                    ┌────────────▼───────────┐
-                    │      Judge Agent        │
-                    │  reads both arguments   │
-                    │  scores each out of 10  │
-                    │  declares a winner      │
-                    └────────────┬───────────┘
-                                 │ verdict
-                    ┌────────────▼───────────┐
-                    │     Streamlit UI        │
-                    │  displays full debate   │
-                    │  + judge's verdict      │
-                    └────────────────────────┘
-
-  All agents share a single DebateState (TypedDict)
-  orchestrated by LangGraph's StateGraph
